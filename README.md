@@ -20,6 +20,8 @@ We recommend using a virtual environment (venv) for this project with Python 3.1
       myenv\Scripts\activate
       ```
 
+2. Download and install pytesseract https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.4.0.20240606.exe
+
 3. Install the required dependencies:
     ```bash
     pip install -r requirements.txt
