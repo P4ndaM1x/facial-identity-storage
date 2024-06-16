@@ -33,8 +33,15 @@ class DocumentScanner:
         data = pytesseract.image_to_string(blurred, lang='eng', config=options)
         
         # Delete created JPG file
-        if image_path.lower().endswith('.png'):
-            os.remove(new_path)
+        try:
+            if image_path.lower().endswith('.png'):
+                os.remove(new_path)
+        except FileNotFoundError:
+            print(f"File {new_path} not found for deletion.")
+        except PermissionError:
+            print(f"Permission denied: cannot delete {new_path}.")
+        except Exception as e:
+            print(f"Error deleting file {new_path}: {e}")
         
         # Check what type of document has been passed
         words = ['bicycle', 'library']
@@ -112,5 +119,3 @@ class DocumentScanner:
             
         else:
             print("Unsupported type of file.")
-
-DocumentScanner().recognize_card_type("images/person_5/university_card.png")

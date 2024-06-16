@@ -51,7 +51,7 @@ We recommend using a virtual environment (venv) for this project with Python 3.1
 
 7. Run the program with the desired options, e.g.:
     ```bash
-    python3 main.py --photosDir images/person_0 --configFile config.ini --clearDatabase
+    python3 main.py --photosDir photos --configFile config.ini --clearDatabase
     ```
 
 ## Authors
