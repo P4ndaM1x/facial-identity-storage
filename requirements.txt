@@ -7,4 +7,4 @@ torchvision==0.18.0
 argparse==1.4.0
 configparser==7.0.0
 pytesseract==0.3.10
-opencv-python==4.10.0.82
+opencv-python==4.8.0.76

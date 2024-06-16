@@ -2,7 +2,6 @@ import pytesseract
 import cv2
 import re
 import os
-import numpy as np
 
 class DocumentScanner:
     pytesseract.pytesseract.tesseract_cmd = 'tesseract'
@@ -42,7 +41,6 @@ class DocumentScanner:
         found_word = self.search_word(data, words)
         print(found_word, '\n')
         
-        print(data)
         
         # Scan the image accordingly to the document type
         if found_word == "bicycle":
@@ -69,11 +67,12 @@ class DocumentScanner:
                 if not address and re.search(address_pattern, line):
                     address = re.search(address_pattern, line).group(1)
 
-            # Print the extracted values
-            print(f"Name: {name}")
-            print(f"ID Number: {id_number}")
-            print(f"Place of Birth: {phone_number}")
-            print(f"Date of Birth: {address}")
+            # Print the extracted values and return them
+            # print(f"Name: {name}")
+            # print(f"ID Number: {id_number}")
+            # print(f"Place of Birth: {phone_number}")
+            # print(f"Date of Birth: {address}")
+            return (found_word, name, id_number, phone_number, address)
                 
         elif found_word == 'library':
             name_pattern = r'Name\s+([A-Z][a-z]+\s[A-Z][a-z]+)'
@@ -103,12 +102,13 @@ class DocumentScanner:
                 if not address and re.search(address_pattern, line):
                     address = re.search(address_pattern, line).group(1)
 
-            # Print the extracted values
-            print(f"Name: {name}")
-            print(f"ID Number: {id_number}")
-            print(f"Class: {class_type}")
-            print(f"Phone Number: {phone_number}")
-            print(f"Address: {address}")
+            # Print the extracted values and return them
+            # print(f"Name: {name}")
+            # print(f"ID Number: {id_number}")
+            # print(f"Class: {class_type}")
+            # print(f"Phone Number: {phone_number}")
+            # print(f"Address: {address}")
+            return (found_word, name, id_number, class_type, phone_number, address)
             
         else:
             print("Unsupported type of file.")
