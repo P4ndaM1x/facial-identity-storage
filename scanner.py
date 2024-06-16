@@ -2,9 +2,10 @@ import pytesseract
 import cv2
 import re
 import os
+import numpy as np
 
 class DocumentScanner:
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    pytesseract.pytesseract.tesseract_cmd = 'tesseract'
 
     def search_word(self, text, words):
         text = text.lower()
@@ -22,9 +23,15 @@ class DocumentScanner:
             new_path = os.path.splitext(image_path)[0] + '.jpg'
             cv2.imwrite(new_path, img, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         
-        # Image to text using pytesseract
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Light blur
+        blurred = cv2.GaussianBlur(gray, (3,3), 0)
+
+        # Preprocessed image to text using pytesseract
         options = "--psm 6"
-        data = pytesseract.image_to_string(img, lang='eng', config=options)
+        data = pytesseract.image_to_string(blurred, lang='eng', config=options)
         
         # Delete created JPG file
         if image_path.lower().endswith('.png'):
@@ -106,4 +113,4 @@ class DocumentScanner:
         else:
             print("Unsupported type of file.")
 
-DocumentScanner().recognize_card_type("images/person_9/bicycle_card.png")
+DocumentScanner().recognize_card_type("images/person_5/university_card.png")
