@@ -6,9 +6,18 @@ services:
       - 5432:5432
     restart: always
     environment:
-      - POSTGRES_DB=aoip
+      - POSTGRES_DB=aipo
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./src/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+  tesseract-service:
+    container_name: tesseract-ocr-container
+    build:
+      context: tesseract-service
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./tesseract-service:/app

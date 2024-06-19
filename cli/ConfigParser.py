@@ -1,6 +1,6 @@
 import configparser
 
-from Logger import *
+from .Logger import *
 
 
 def initConfig(config_filepath):
