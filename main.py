@@ -2,6 +2,7 @@ from cli.ArgParser import *
 from cli.ConfigParser import *
 from cli.Logger import *
 from cli.EmbeddingExtractor import *
+from cli.scanner import *
 
 import psycopg
 import numpy as np
@@ -79,23 +80,33 @@ class Application:
         self.embedding_service = EmbeddingService(EmbeddingExtractor())
 
     def run(self):
+        # Connect to the database
         self.db_manager.connect()
         self.db_manager.fetch_one("SELECT version();")
         self.logger.debug(f"Database version: {self.db_manager.cursor.fetchone()}")
 
+        # Clear the database if the --clearDatabase flag is set
         if self.args.clearDatabase:
             self.logger.debug("Clearing person table")
             self.db_manager.clear_table("person")
+            
+        # Scan the person data from document if the --documentPhoto flag is set
+        if(self.args.documentPhoto):
+            person_info = DocumentScanner().recognize_card_type(self.args.documentPhoto)
+            print("Person info: ", person_info)
 
+        # Extract embeddings from photos and insert them into the database
         person_vec = self.embedding_service.extract_embeddings(PHOTOS_DIR)
         insert_query = sql.SQL("INSERT INTO person (name, embedding) VALUES (%s, %s)")
 
         for person, vec in person_vec:
             self.db_manager.execute_query(insert_query, (person, vec))
 
+        # Print the current state of the database
         self.print_database_state()
         self.print_closest_embeddings()
 
+        # Close the database connection
         self.db_manager.close()
 
     def print_database_state(self):
