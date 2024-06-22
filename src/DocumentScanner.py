@@ -2,6 +2,7 @@ import cv2
 import re
 import os
 import requests
+from Logger import initLogger
 
 TESSERACT_SERVICE_URL = "http://localhost:5000/ocr"
 
@@ -17,6 +18,7 @@ class DocumentScanner:
 
     def recognize_card_type(self, image_path):
         img = cv2.imread(image_path)
+        logger = initLogger()
         
         # Convert image to JPG format if it's PNG (pytesseract works only with JPG)
         if image_path.lower().endswith('.png'):
@@ -42,6 +44,7 @@ class DocumentScanner:
 
         # Send the POST request
         response = requests.post(TESSERACT_SERVICE_URL, files=files)
+      
 
         if response.status_code != 200:
             raise ValueError()
@@ -52,11 +55,11 @@ class DocumentScanner:
             if image_path.lower().endswith('.png'):
                 os.remove(new_path)
         except FileNotFoundError:
-            print(f"File {new_path} not found for deletion.")
+            logger.error(f"File {new_path} not found for deletion.")
         except PermissionError:
-            print(f"Permission denied: cannot delete {new_path}.")
+            logger.error(f"Permission denied: cannot delete {new_path}.")
         except Exception as e:
-            print(f"Error deleting file {new_path}: {e}")
+            logger.error(f"Error deleting file {new_path}: {e}")
         
         # Check what type of document has been passed
         words = ['bicycle', 'library']
@@ -64,10 +67,10 @@ class DocumentScanner:
         
         # Scan the image accordingly to the document type
         if found_word == "bicycle":
-            name_pattern = r'^.*?\b([A-Z][a-z]+)\s([A-Z][a-z]+)\b'
+            name_pattern = r'(?s)([A-Z][a-z]+ [A-Z][a-z]+).*?ID Number:'
             id_number_pattern = r'ID Number:\s*(\d+)'
-            phone_number_pattern = r'Phone Number:\s*(.*)'
-            address_pattern = r'Address:\s*(.*)'
+            phone_number_pattern = r'Phone Number:\s*([^\\\n]+)'
+            address_pattern = r'Address:\s*([^\n\\]+)'
             
             # Initialize variables
             name = None
@@ -79,12 +82,9 @@ class DocumentScanner:
             for line in data.split('\n'):
                 line = line.strip()
                 if not name:
-                    name_match = re.search(name_pattern, line)
+                    name_match = re.search(name_pattern, data, re.DOTALL)  # Użycie re.DOTALL dla dopasowania przez linie
                     if name_match:
-                        # Use groups to extract first name and last name
-                        first_name = name_match.group(1)
-                        last_name = name_match.group(2)
-                        name = f"{first_name} {last_name}"
+                        name = name_match.group(1)
                 if not id_number and re.search(id_number_pattern, line):
                     id_number = re.search(id_number_pattern, line).group(1)
                 if not phone_number and re.search(phone_number_pattern, line):
@@ -102,9 +102,9 @@ class DocumentScanner:
         elif found_word == 'library':
             name_pattern = r'Name\s+([A-Z][a-z]+\s[A-Z][a-z]+)'
             id_number_pattern = r'Student\s*ID\s*(\d+)'
-            class_pattern = r'Class\s*(.*)'
-            phone_number_pattern = r'Phone\s*(.*)'
-            address_pattern = r'Address\s*(.*)'        
+            class_pattern = r'Class\s*(\d+[a-z])'
+            phone_number_pattern = r'Phone\s*([^\\\n]+)'
+            address_pattern = r'Address\s*([^\n\\]+)'       
             
             # Initialize variables
             name = None
@@ -120,8 +120,8 @@ class DocumentScanner:
                     name = re.search(name_pattern, line).group(1)
                 if not id_number and re.search(id_number_pattern, line):
                     id_number = re.search(id_number_pattern, line).group(1)
-                if not class_type and re.search(class_pattern, line):
-                    class_type = re.search(class_pattern, line).group(1)
+                if not class_type and re.search(class_pattern, line, re.IGNORECASE):
+                    class_type = re.search(class_pattern, line, re.IGNORECASE).group(1)
                 if not phone_number and re.search(phone_number_pattern, line):
                     phone_number = re.search(phone_number_pattern, line).group(1)
                 if not address and re.search(address_pattern, line):
@@ -136,4 +136,4 @@ class DocumentScanner:
             return {"name": name, "address": address, "phone_number": phone_number, "bicycle_card_id": None, "student_card_id": id_number, "student_class": class_type}
             
         else:
-            print("Unsupported type of file.")
+            logger.error("Unsupported type of file.")

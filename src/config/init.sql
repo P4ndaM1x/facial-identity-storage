@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS person (
   id SERIAL PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
+  name TEXT,
   address TEXT,
   phone_number TEXT,
   bicycle_card_id BIGINT,
