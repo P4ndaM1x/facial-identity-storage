@@ -10,7 +10,7 @@ def initArgs():
     parser.add_argument(
         "--documentPhotoPath",
         help="specify document photo path",
-        type=dir_path,
+        type=file_path,
     )
     parser.add_argument(
         "--clearDatabase",
