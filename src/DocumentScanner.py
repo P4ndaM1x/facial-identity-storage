@@ -1,10 +1,11 @@
-import pytesseract
 import cv2
 import re
 import os
+import requests
+
+TESSERACT_SERVICE_URL = "http://localhost:5000/ocr"
 
 class DocumentScanner:
-    pytesseract.pytesseract.tesseract_cmd = 'tesseract'
 
     def search_word(self, text, words):
         text = text.lower()
@@ -29,9 +30,23 @@ class DocumentScanner:
         blurred = cv2.GaussianBlur(gray, (3,3), 0)
 
         # Preprocessed image to text using pytesseract
-        options = "--psm 6"
-        data = pytesseract.image_to_string(blurred, lang='eng', config=options)
-        
+        success, encoded_image = cv2.imencode('.jpg', blurred)
+        if not success:
+            raise ValueError("Could not encode image")
+
+        # Convert the encoded image to bytes
+        image_bytes = encoded_image.tobytes()
+
+        # Prepare the files dictionary for the POST request
+        files = {'file': ('image.jpg', image_bytes, 'image/jpeg')}
+
+        # Send the POST request
+        response = requests.post(TESSERACT_SERVICE_URL, files=files)
+
+        if response.status_code != 200:
+            raise ValueError()
+
+        data = response.text
         # Delete created JPG file
         try:
             if image_path.lower().endswith('.png'):
@@ -46,8 +61,6 @@ class DocumentScanner:
         # Check what type of document has been passed
         words = ['bicycle', 'library']
         found_word = self.search_word(data, words)
-        print(found_word, '\n')
-        
         
         # Scan the image accordingly to the document type
         if found_word == "bicycle":
@@ -79,7 +92,7 @@ class DocumentScanner:
             # print(f"ID Number: {id_number}")
             # print(f"Place of Birth: {phone_number}")
             # print(f"Date of Birth: {address}")
-            return (found_word, name, id_number, phone_number, address)
+            return {"name": name, "address": address, "phone_number": phone_number, "bicycle_card_id": id_number, "student_card_id": None, "student_class": None}
                 
         elif found_word == 'library':
             name_pattern = r'Name\s+([A-Z][a-z]+\s[A-Z][a-z]+)'
@@ -115,7 +128,7 @@ class DocumentScanner:
             # print(f"Class: {class_type}")
             # print(f"Phone Number: {phone_number}")
             # print(f"Address: {address}")
-            return (found_word, name, id_number, class_type, phone_number, address)
+            return {"name": name, "address": address, "phone_number": phone_number, "bicycle_card_id": None, "student_card_id": id_number, "student_class": class_type}
             
         else:
             print("Unsupported type of file.")

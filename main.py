@@ -1,83 +1,38 @@
-from cli.ArgParser import *
-from cli.ConfigParser import *
-from cli.Logger import *
-from cli.EmbeddingExtractor import *
-from cli.scanner import *
+from src.ArgParser import initArgs
+from src.ConfigParser import initConfig
+from src.Logger import initLogger
+from src.EmbeddingExtractor import EmbeddingExtractor
+from src.DatabaseManager import DatabaseManager
+from src.DocumentScanner import DocumentScanner
+from src.FaceExtractor import FaceExtractor
 
-import psycopg
-import numpy as np
-from psycopg import sql
 from PIL import Image
 from pathlib import Path
+from psycopg import sql
+import numpy as np
+import os
+import cv2
 
 PHOTOS_DIR = Path("images/generated") 
+CONFIG_PATH = Path("./src/config/config.ini")
 
-class DatabaseManager:
-    def __init__(self, config, logger):
-        self.config = config
-        self.logger = logger
-        self.connection = None
-        self.cursor = None
+def find_files(filenames, root_dir=Path(".")):
+    matching_files = []
+    for dirpath, _, files in os.walk(root_dir):
+        for filename in files:
+            if filename in filenames:
+                matching_files.append(os.path.join(dirpath, filename))
+    return matching_files
 
-    def connect(self):
-        try:
-            self.connection = psycopg.connect(
-                host=self.config.get("DATABASE", "host"),
-                port=self.config.get("DATABASE", "port"),
-                dbname=self.config.get("DATABASE", "name"),
-                user=self.config.get("DATABASE", "user"),
-                password=self.config.get("DATABASE", "password"),
-            )
-            self.logger.info("Database connection established")
-            self.cursor = self.connection.cursor()
-        except psycopg.Error as e:
-            self.logger.error(e)
-
-    def close(self):
-        if self.cursor is not None:
-            self.cursor.close()
-        if self.connection is not None:
-            self.connection.close()
-        self.logger.info("Database connection closed")
-
-    def execute_query(self, query, params=None):
-        try:
-            self.cursor.execute(query, params)
-            self.connection.commit()
-        except psycopg.Error as e:
-            self.logger.error(e)
-            self.connection.rollback()
-
-    def fetch_all(self, query, params=None):
-        self.execute_query(query, params)
-        return self.cursor.fetchall()
-
-    def fetch_one(self, query, params=None):
-        self.execute_query(query, params)
-        return self.cursor.fetchone()
-
-    def clear_table(self, table_name):
-        self.execute_query(f"DELETE FROM {table_name};")
-
-class EmbeddingService:
-    def __init__(self, extractor):
-        self.extractor = extractor
-
-    def extract_embeddings(self, photos_dir):
-        filenames = os.listdir(photos_dir)
-        embeddings = []
-        for photo_name in filenames:
-            img = Image.open(os.path.join(photos_dir, photo_name))
-            embedding = self.extractor.vectorize(img).str()
-            embeddings.append((photo_name, embedding))
-        return embeddings
 
 class Application:
     def __init__(self, args, config, logger):
         self.args = args
         self.logger = logger
         self.db_manager = DatabaseManager(config, logger)
-        self.embedding_service = EmbeddingService(EmbeddingExtractor())
+        self.embedding_extractor = EmbeddingExtractor()
+        self.face_extractor = FaceExtractor()
+        self.document_scanner = DocumentScanner()
 
     def run(self):
         # Connect to the database
@@ -87,51 +42,59 @@ class Application:
 
         # Clear the database if the --clearDatabase flag is set
         if self.args.clearDatabase:
-            self.logger.debug("Clearing person table")
+            self.logger.info("Clearing person table")
             self.db_manager.clear_table("person")
+        
+        if self.args.initDatabase:
+            self.logger.info("Initializing database")
+
+            file_paths = find_files(["university_card.png", "bicycle_card.png"])
+
+            for file_path in file_paths:
+                self.scan_document(file_path)
+
             
         # Scan the person data from document if the --documentPhoto flag is set
-        if(self.args.documentPhoto):
-            person_info = DocumentScanner().recognize_card_type(self.args.documentPhoto)
-            print("Person info: ", person_info)
+        if(self.args.documentPhotoPath):
+            person_info = DocumentScanner().recognize_card_type(self.args.documentPhotoPath)
+            self.logger.info("Person info: ", person_info)
 
         # Extract embeddings from photos and insert them into the database
-        person_vec = self.embedding_service.extract_embeddings(PHOTOS_DIR)
-        insert_query = sql.SQL("INSERT INTO person (name, embedding) VALUES (%s, %s)")
-
-        for person, vec in person_vec:
-            self.db_manager.execute_query(insert_query, (person, vec))
-
-        # Print the current state of the database
-        self.print_database_state()
-        self.print_closest_embeddings()
+        self.db_manager.print_table_state()
+        # self.db_manager.print_closest_embeddings()
 
         # Close the database connection
         self.db_manager.close()
+    
+    def scan_document(self, document_path):
+        face_img = self.face_extractor.get_photo(document_path)
+        face_embedding = self.embedding_extractor.vectorize(face_img).as_str()
 
-    def print_database_state(self):
-        rows = self.db_manager.fetch_all("SELECT * FROM person;")
-        column_names = [desc[0] for desc in self.db_manager.cursor.description]
-        print("Current database state:")
-        for row in rows:
-            print(f"({column_names[0]}: {row[0]}, {column_names[1]}: {row[1]}, {column_names[2]}: {row[2][:80]}...)")
+        scanned_data = self.document_scanner.recognize_card_type(document_path)
 
-    def print_closest_embeddings(self):
-        rows = self.db_manager.fetch_all("SELECT * FROM person;")
-        column_names = [desc[0] for desc in self.db_manager.cursor.description]
-        sample_embedding = rows[0][2]
-        search_closest_query = sql.SQL(
-            "SELECT *, %s <-> embedding as distance FROM person ORDER BY embedding <-> %s LIMIT 5;"
-        )
-        rows = self.db_manager.fetch_all(search_closest_query, (sample_embedding, sample_embedding))
+        insert_query = """
+            INSERT INTO person (name, address, phone_number, bicycle_card_id, student_card_id, student_class, embedding)
+            VALUES (%(name)s, %(address)s, %(phone_number)s, %(bicycle_card_id)s, %(student_card_id)s, %(student_class)s, %(embedding)s)
+            ON CONFLICT (name) DO UPDATE
+            SET 
+                bicycle_card_id = COALESCE(person.bicycle_card_id, EXCLUDED.bicycle_card_id),
+                student_card_id = COALESCE(person.student_card_id, EXCLUDED.student_card_id),
+                student_class = COALESCE(person.student_class, EXCLUDED.student_class)
+            WHERE 
+                person.bicycle_card_id IS NULL 
+                OR person.student_card_id IS NULL 
+                OR person.student_class IS NULL
+            RETURNING id;
+        """
 
-        print("\nDistance to the sample embedding:")
-        for row in rows:
-            print(f"({column_names[0]}: {row[0]}, {column_names[1]}: {row[1]}, {column_names[2]}: {row[2][:80]}..., distance: {row[-1]})")
+        scanned_data["embedding"] = face_embedding
+        self.db_manager.execute_query(insert_query, scanned_data)
+        
+
 
 def main():
     args = initArgs()
-    config = initConfig(args.configFile.name)
+    config = initConfig(CONFIG_PATH)
     logger = initLogger()
     app = Application(args, config, logger)
     app.run()

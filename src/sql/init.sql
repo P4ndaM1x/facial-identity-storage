@@ -11,3 +11,4 @@ CREATE TABLE IF NOT EXISTS person (
   embedding vector,
   created_at timestamptz DEFAULT now()
 );
+

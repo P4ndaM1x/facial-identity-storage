@@ -15,9 +15,9 @@ def ocr():
         filename = 'temp_image.png'
         file.save(filename)
 
-        output = subprocess.run(['tesseract', filename, 'stdout'], capture_output=True, text=True)
+        output = subprocess.run(['tesseract', filename, 'stdout', '--psm', '6'], capture_output=True, text=True).stdout
         os.remove(filename)
-        return jsonify({'text': output.stdout.strip()})
+        return jsonify({'text': output.strip()})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

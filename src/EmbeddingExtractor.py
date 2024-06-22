@@ -1,6 +1,8 @@
 import torch
 import torchvision
 import torchvision.models as models
+from torch import nn
+from PIL import Image
 
 
 class ResNetEncoder(torch.nn.Module):
@@ -20,8 +22,9 @@ class EmbeddingExtractor:
     def __init__(self):
         self.transforms = torchvision.transforms.Compose(
             [
-                torchvision.transforms.Resize(256),
+                torchvision.transforms.ToPILImage(),
                 torchvision.transforms.CenterCrop(224),
+                torchvision.transforms.Resize(224),
                 torchvision.transforms.ToTensor(),
                 torchvision.transforms.Normalize(
                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -39,7 +42,7 @@ class EmbeddingExtractor:
             self.result = res.flatten().tolist()
             return self
 
-    def str(self):
+    def as_str(self):
         return "[" + ",".join([str(el) for el in self.result]) + "]"
 
     def get(self):
