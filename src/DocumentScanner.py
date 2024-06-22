@@ -2,7 +2,7 @@ import cv2
 import re
 import os
 import requests
-from Logger import initLogger
+from src.Logger import initLogger
 
 TESSERACT_SERVICE_URL = "http://localhost:5000/ocr"
 
