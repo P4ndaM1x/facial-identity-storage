@@ -40,8 +40,9 @@ class Application:
     def run(self):
         # Connect to the database
         self.db_manager.connect()
-        self.db_manager.fetch_one("SELECT version();")
-        self.logger.debug(f"Database version: {self.db_manager.cursor.fetchone()}")
+        self.logger.debug(
+            f"Database version: {self.db_manager.fetch_one('SELECT version();')}"
+        )
 
         # Clear the database if the --clearDatabase flag is set
         if self.args.clearDatabase:
