@@ -1,12 +1,25 @@
 import psycopg
 from psycopg import sql
 
+
 class DatabaseManager:
-    def __init__(self, config, logger):
+    def __init__(self, config, logger, init_script_path=None):
         self.config = config
         self.logger = logger
+        self.init_script_path = init_script_path
         self.connection = None
         self.cursor = None
+
+    def execute_script(self, script_path):
+        try:
+            with open(script_path, "r") as f:
+                script = f.read()
+        except Exception as e:
+            self.logger.fatal(f"Error reading SQL script file: {e}")
+
+        self.cursor.execute(script)
+        self.connection.commit()
+        self.logger.info("SQL script executed successfully")
 
     def connect(self):
         try:
@@ -19,6 +32,9 @@ class DatabaseManager:
             )
             self.logger.info("Database connection established")
             self.cursor = self.connection.cursor()
+            if self.init_script_path is not None:
+                self.execute_script(self.init_script_path)
+            self.execute_script
         except psycopg.Error as e:
             self.logger.error(e)
 
@@ -61,15 +77,22 @@ class DatabaseManager:
         search_closest_query = sql.SQL(
             f"SELECT *, %s <-> embedding as distance FROM person ORDER BY embedding <-> %s LIMIT 5;"
         )
-        rows = self.fetch_all(search_closest_query, (sample_embedding, sample_embedding))
+        rows = self.fetch_all(
+            search_closest_query, (sample_embedding, sample_embedding)
+        )
 
         print("\nDistance to the sample embedding:")
         self.print_rows(rows, column_names)
-    
+
     def print_rows(self, rows=[], column_names=[], max_chars=15):
-        column_names_formatted = "| ".join([f"{name:{max_chars}}" for name in column_names])
+        column_names_formatted = "| ".join(
+            [f"{name:{max_chars}}" for name in column_names]
+        )
         self.logger.info(column_names_formatted)
 
-        rows_formatted = ['| '.join([f"{str(value)[:max_chars]:{max_chars}}" for value in row]) for row in rows]
+        rows_formatted = [
+            "| ".join([f"{str(value)[:max_chars]:{max_chars}}" for value in row])
+            for row in rows
+        ]
         for row in rows_formatted:
             self.logger.info(row)

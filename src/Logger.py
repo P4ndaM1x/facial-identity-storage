@@ -1,4 +1,6 @@
 import logging
+import sys
+
 
 class CustomFormatter(logging.Formatter):
 
@@ -26,12 +28,19 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+class CustomHandler(logging.StreamHandler):
+    def emit(self, record):
+        super().emit(record)
+        if record.levelno == logging.CRITICAL:
+            sys.exit(1)
+
+
 def initLogger():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
     if not logger.handlers:
-        ch = logging.StreamHandler()
+        ch = CustomHandler()
         ch.setLevel(logging.DEBUG)
         ch.setFormatter(CustomFormatter())
         logger.addHandler(ch)

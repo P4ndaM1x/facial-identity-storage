@@ -13,8 +13,9 @@ import numpy as np
 import os
 import cv2
 
-PHOTOS_DIR = Path("images/generated") 
+PHOTOS_DIR = Path("images/generated")
 CONFIG_PATH = Path("./src/config/config.ini")
+
 
 def find_files(filenames, root_dir=Path(".")):
     matching_files = []
@@ -29,7 +30,9 @@ class Application:
     def __init__(self, args, config, logger):
         self.args = args
         self.logger = logger
-        self.db_manager = DatabaseManager(config, logger)
+        self.db_manager = DatabaseManager(
+            config, logger, config.get("DATABASE", "initScriptPath")
+        )
         self.embedding_extractor = EmbeddingExtractor()
         self.face_extractor = FaceExtractor()
         self.document_scanner = DocumentScanner()
@@ -44,7 +47,7 @@ class Application:
         if self.args.clearDatabase:
             self.logger.info("Clearing person table")
             self.db_manager.clear_table("person")
-        
+
         if self.args.initDatabase:
             self.logger.info("Initializing database")
 
@@ -53,10 +56,11 @@ class Application:
             for file_path in file_paths:
                 self.scan_document(file_path)
 
-            
         # Scan the person data from document if the --documentPhoto flag is set
-        if(self.args.documentPhotoPath):
-            person_info = DocumentScanner().recognize_card_type(self.args.documentPhotoPath)
+        if self.args.documentPhotoPath:
+            person_info = DocumentScanner().recognize_card_type(
+                self.args.documentPhotoPath
+            )
             self.logger.info("Person info: ", person_info)
 
         # Extract embeddings from photos and insert them into the database
@@ -65,7 +69,7 @@ class Application:
 
         # Close the database connection
         self.db_manager.close()
-    
+
     def scan_document(self, document_path):
         face_img = self.face_extractor.get_photo(document_path)
         face_embedding = self.embedding_extractor.vectorize(face_img).as_str()
@@ -89,7 +93,6 @@ class Application:
 
         scanned_data["embedding"] = face_embedding
         self.db_manager.execute_query(insert_query, scanned_data)
-        
 
 
 def main():
@@ -98,6 +101,7 @@ def main():
     logger = initLogger()
     app = Application(args, config, logger)
     app.run()
+
 
 if __name__ == "__main__":
     main()
