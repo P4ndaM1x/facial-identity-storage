@@ -64,13 +64,15 @@ class DatabaseManager:
 
     def clear_table(self, table_name):
         self.execute_query(f"DELETE FROM {table_name};")
-        
+
     def delete_person(self, name):
         try:
             self.execute_query("DELETE FROM person WHERE name = %s;", (name,))
             self.logger.info(f"Person {name} deleted from database.")
         except Exception as e:
-            self.logger.error(f"Failed to delete person {name} from database. Error: {e}")
+            self.logger.error(
+                f"Failed to delete person {name} from database. Error: {e}"
+            )
 
     def print_table_state(self):
         rows = self.fetch_all(f"SELECT * FROM person;")
@@ -91,14 +93,15 @@ class DatabaseManager:
     def print_closest_embeddings(self, sample_embedding):
         rows = self.fetch_all(f"SELECT * FROM person;")
         column_names = [desc[0] for desc in self.cursor.description]
+        column_names.append("distance")
         search_closest_query = sql.SQL(
-            f"SELECT *, %s <-> embedding as distance FROM person ORDER BY embedding <-> %s LIMIT 5;"
+            f"SELECT *, %s <-> embedding FROM person ORDER BY embedding <-> %s LIMIT 3;"
         )
         rows = self.fetch_all(
             search_closest_query, (sample_embedding, sample_embedding)
         )
 
-        print("\nDistance to the sample embedding:")
+        print("\nClosest embeddings:")
         self.print_rows(rows, column_names)
 
     def print_rows(self, rows=[], column_names=[], max_chars=16):
