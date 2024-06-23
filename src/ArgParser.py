@@ -1,6 +1,7 @@
 import argparse
 import os
 
+
 def initArgs():
     parser = argparse.ArgumentParser(
         prog="Facial Identity Storage Project",
@@ -19,11 +20,16 @@ def initArgs():
     )
     parser.add_argument(
         "--initDatabase",
-        help="insert records into database",
+        help="insert all sample data into database",
         action="store_true",
     )
-    
-    return parser.parse_args() 
+    parser.add_argument(
+        "--deleteRecord",
+        help="delete record from database found by document photo path",
+        action="store_true",
+    )
+
+    return parser.parse_args()
 
 
 def dir_path(path):
@@ -31,6 +37,7 @@ def dir_path(path):
         return path
     else:
         raise argparse.ArgumentTypeError(f"'{path}' is not a valid directory path")
+
 
 def file_path(path):
     if os.path.isfile(path):
