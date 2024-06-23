@@ -46,7 +46,7 @@ class DocumentScanner:
         if response.status_code != 200:
             raise ValueError()
 
-        data = response.text
+        data = response.json()['text']
         # Delete created JPG file
         try:
             if image_path.lower().endswith('.png'):
