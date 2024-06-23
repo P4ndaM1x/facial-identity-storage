@@ -71,6 +71,13 @@ class DatabaseManager:
         print("Current database state:")
         self.print_rows(rows, column_names)
 
+    def print_person(self, name):
+        rows = self.fetch_all(f"SELECT * FROM person WHERE name=%(name)s;", {"name": name})
+        column_names = [desc[0] for desc in self.cursor.description]
+
+        print("Person data:")
+        self.print_rows(rows, column_names)
+
     def print_closest_embeddings(self, sample_embedding):
         rows = self.fetch_all(f"SELECT * FROM person;")
         column_names = [desc[0] for desc in self.cursor.description]

@@ -57,12 +57,12 @@ class Application:
             for file_path in file_paths:
                 self.scan_document(file_path)
 
+        self.db_manager.print_table_state()
+
         # Scan the person data from document if the --documentPhoto flag is set
         if self.args.documentPhotoPath:
-            person_info = DocumentScanner().recognize_card_type(
-                self.args.documentPhotoPath
-            )
-            self.logger.info("Person info: ", person_info)
+            name = self.scan_document(self.args.documentPhotoPath)
+            self.db_manager.print_person(name)
 
         # Extract embeddings from photos and insert them into the database
         self.db_manager.print_table_state()
@@ -94,6 +94,7 @@ class Application:
 
         scanned_data["embedding"] = face_embedding
         self.db_manager.execute_query(insert_query, scanned_data)
+        return scanned_data["name"]
 
 
 def main():
