@@ -28,6 +28,11 @@ def initArgs():
         help="delete record from database found by document photo path",
         action="store_true",
     )
+    parser.add_argument(
+        "--personPhotoPath",
+        help="specify person photo path",
+        type=file_path,
+    )
 
     return parser.parse_args()
 
