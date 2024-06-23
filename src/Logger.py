@@ -11,7 +11,7 @@ class CustomFormatter(logging.Formatter):
     bold_red = "\x1b[31;1m"
 
     reset = "\x1b[0m"
-    format = "%(levelname)-8s | %(filename)s:%(lineno)d | %(message)s"
+    format = "%(levelname)-8s | %(filename)s:%(lineno)-3s | %(message)s"
     suffix = format + reset
 
     FORMATS = {
