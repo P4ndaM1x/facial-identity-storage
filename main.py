@@ -40,9 +40,6 @@ class Application:
     def run(self):
         # Connect to the database
         self.db_manager.connect()
-        self.logger.debug(
-            f"Database version: {self.db_manager.fetch_one('SELECT version();')}"
-        )
 
         # Clear the database if the --clearDatabase flag is set
         if self.args.clearDatabase:
@@ -63,9 +60,17 @@ class Application:
         if self.args.documentPhotoPath:
             name = self.scan_document(self.args.documentPhotoPath)
             self.db_manager.print_person(name)
+            self.db_manager.print_table_state()
+            
+        # Delete person from database based on the document path provided
+        if self.args.deleteRecord:
+            scanned_data = self.document_scanner.recognize_card_type(self.args.documentPhotoPath)
+            name = scanned_data["name"]
+            self.db_manager.delete_person(name)
+            self.db_manager.print_table_state()
 
         # Extract embeddings from photos and insert them into the database
-        self.db_manager.print_table_state()
+        # self.db_manager.print_table_state()
         # self.db_manager.print_closest_embeddings()
 
         # Close the database connection
@@ -95,7 +100,6 @@ class Application:
         scanned_data["embedding"] = face_embedding
         self.db_manager.execute_query(insert_query, scanned_data)
         return scanned_data["name"]
-
 
 def main():
     args = initArgs()

@@ -37,6 +37,7 @@ class DatabaseManager:
             self.execute_script
         except psycopg.Error as e:
             self.logger.error(e)
+        self.logger.debug(f"Database version: {self.fetch_one('SELECT version();')}")
 
     def close(self):
         if self.cursor is not None:
@@ -63,16 +64,25 @@ class DatabaseManager:
 
     def clear_table(self, table_name):
         self.execute_query(f"DELETE FROM {table_name};")
+        
+    def delete_person(self, name):
+        try:
+            self.execute_query("DELETE FROM person WHERE name = %s;", (name,))
+            self.logger.info(f"Person {name} deleted from database.")
+        except Exception as e:
+            self.logger.error(f"Failed to delete person {name} from database. Error: {e}")
 
     def print_table_state(self):
         rows = self.fetch_all(f"SELECT * FROM person;")
         column_names = [desc[0] for desc in self.cursor.description]
 
-        print("Current database state:")
+        print("\nCurrent database state:")
         self.print_rows(rows, column_names)
 
     def print_person(self, name):
-        rows = self.fetch_all(f"SELECT * FROM person WHERE name=%(name)s;", {"name": name})
+        rows = self.fetch_all(
+            f"SELECT * FROM person WHERE name=%(name)s;", {"name": name}
+        )
         column_names = [desc[0] for desc in self.cursor.description]
 
         print("Person data:")
@@ -91,15 +101,21 @@ class DatabaseManager:
         print("\nDistance to the sample embedding:")
         self.print_rows(rows, column_names)
 
-    def print_rows(self, rows=[], column_names=[], max_chars=15):
+    def print_rows(self, rows=[], column_names=[], max_chars=16):
         column_names_formatted = "| ".join(
             [f"{name:{max_chars}}" for name in column_names]
         )
-        self.logger.info(column_names_formatted)
+        row_length = len(column_names_formatted)
+        spacer = row_length * "-"
 
         rows_formatted = [
             "| ".join([f"{str(value)[:max_chars]:{max_chars}}" for value in row])
             for row in rows
         ]
+
+        print(spacer)
+        print(column_names_formatted)
+        print(spacer)
         for row in rows_formatted:
-            self.logger.info(row)
+            print(row)
+        print(spacer)
