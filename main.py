@@ -100,6 +100,10 @@ class Application:
         scanned_data["embedding"] = face_embedding
         self.db_manager.execute_query(insert_query, scanned_data)
         return scanned_data["name"]
+<<<<<<< HEAD
+=======
+
+>>>>>>> ac3a468 (Integrate cli with documment scanner (#9))
 
 def main():
     args = initArgs()
