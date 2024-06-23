@@ -64,6 +64,13 @@ class DatabaseManager:
 
     def clear_table(self, table_name):
         self.execute_query(f"DELETE FROM {table_name};")
+        
+    def delete_person(self, name):
+        try:
+            self.execute_query("DELETE FROM person WHERE name = %s;", (name,))
+            self.logger.info(f"Person {name} deleted from database.")
+        except Exception as e:
+            self.logger.error(f"Failed to delete person {name} from database. Error: {e}")
 
     def print_table_state(self):
         rows = self.fetch_all(f"SELECT * FROM person;")
