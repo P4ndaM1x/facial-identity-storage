@@ -61,10 +61,12 @@ class Application:
             name = self.scan_document(self.args.documentPhotoPath)
             self.db_manager.print_person(name)
             self.db_manager.print_table_state()
-            
+
         # Delete person from database based on the document path provided
         if self.args.deleteRecord:
-            scanned_data = self.document_scanner.recognize_card_type(self.args.documentPhotoPath)
+            scanned_data = self.document_scanner.recognize_card_type(
+                self.args.documentPhotoPath
+            )
             name = scanned_data["name"]
             self.db_manager.delete_person(name)
             self.db_manager.print_table_state()
@@ -73,12 +75,12 @@ class Application:
         # self.db_manager.print_table_state()
         if self.args.personPhotoPath:
             self.print_data_by_photo(self.args.personPhotoPath)
-            
 
         # Close the database connection
         self.db_manager.close()
 
     def print_data_by_photo(self, path):
+        self.logger.info(f"Printing closest embeddings for photo: {path}")
         face = self.face_extractor.get_photo(path)
         face_embedding = self.embedding_extractor.vectorize(face).as_str()
         self.db_manager.print_closest_embeddings(face_embedding)
@@ -107,6 +109,7 @@ class Application:
         scanned_data["embedding"] = face_embedding
         self.db_manager.execute_query(insert_query, scanned_data)
         return scanned_data["name"]
+
 
 def main():
     args = initArgs()

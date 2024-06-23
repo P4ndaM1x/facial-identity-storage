@@ -14,6 +14,11 @@ def initArgs():
         type=file_path,
     )
     parser.add_argument(
+        "--personPhotoPath",
+        help="specify person photo path",
+        type=file_path,
+    )
+    parser.add_argument(
         "--clearDatabase",
         help="delete all records from database before executing rest of the program",
         action="store_true",
@@ -27,11 +32,6 @@ def initArgs():
         "--deleteRecord",
         help="delete record from database found by document photo path",
         action="store_true",
-    )
-    parser.add_argument(
-        "--personPhotoPath",
-        help="specify person photo path",
-        type=file_path,
     )
 
     return parser.parse_args()
